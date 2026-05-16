@@ -255,7 +255,7 @@ function Dashboard() {
       <footer className="text-center text-xs text-muted-foreground pt-4 pb-2">
         © {new Date().getFullYear()} <span className="font-semibold text-foreground">Gibikey Studio</span> — Aman Sampai Gajian.
       </footer>
-    </main>
+    </div>
   );
 }
 
