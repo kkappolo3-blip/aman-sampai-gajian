@@ -64,7 +64,7 @@ function Dashboard() {
   const isEmpty = current.income === 0 && current.bills.length === 0;
 
   return (
-    <main className="px-4 sm:px-6 lg:px-10 py-6 max-w-6xl mx-auto space-y-6">
+    <div className="px-4 sm:px-6 lg:px-10 py-6 max-w-6xl mx-auto space-y-6">
       {isEmpty && (
         <Card className="p-5 sm:p-6 bg-gold-gradient text-primary-foreground shadow-gold border-transparent">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
