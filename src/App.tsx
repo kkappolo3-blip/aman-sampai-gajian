@@ -1,5 +1,10 @@
-import { createFileRoute } from "@tanstack/react-router";
 import { useMemo } from "react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { SidebarProvider, SidebarInset, useSidebar } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/app-sidebar";
+import { SummaryHeader } from "@/components/summary-header";
+import { SimulationProvider, useSimulation } from "@/lib/simulation-context";
+import { Toaster } from "@/components/ui/sonner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -8,27 +13,31 @@ import {
   Wallet, TrendingDown, Sparkles, CalendarDays, PiggyBank, Receipt,
   ShieldCheck, AlertTriangle, Lightbulb, Copy, Share2, ArrowRight, History,
 } from "lucide-react";
-import { useSimulation } from "@/lib/simulation-context";
 import {
   compute, buildInsights, buildReport, formatIDR, formatLongDate, daysBetweenInclusive, todayISO,
 } from "@/lib/budget";
 import { toast } from "sonner";
-import { useSidebar } from "@/components/ui/sidebar";
 
-export const Route = createFileRoute("/")({
-  component: Dashboard,
-  head: () => ({
-    meta: [
-      { title: "Aman Sampai Gajian — Gibikey Studio" },
-      { name: "description", content: "Bagi otomatis budget harian sampai gajian berikutnya. Hitung sisa setelah tagihan, dapatkan jatah harian rapi (kelipatan 10rb), dan bagikan ke pasangan." },
-      { property: "og:title", content: "Aman Sampai Gajian — Gibikey Studio" },
-      { property: "og:description", content: "Atur uangmu biar aman sampai gajian." },
-      { property: "og:image", content: "/og-image.png" },
-      { property: "og:url", content: "/" },
-    ],
-    links: [{ rel: "canonical", href: "/" }],
-  }),
-});
+const queryClient = new QueryClient();
+
+export default function App() {
+  return (
+    <QueryClientProvider client={queryClient}>
+      <SimulationProvider>
+        <SidebarProvider>
+          <div className="min-h-screen flex w-full bg-background">
+            <AppSidebar />
+            <SidebarInset className="flex-1 flex flex-col min-w-0">
+              <SummaryHeader />
+              <Dashboard />
+            </SidebarInset>
+          </div>
+          <Toaster richColors position="top-right" />
+        </SidebarProvider>
+      </SimulationProvider>
+    </QueryClientProvider>
+  );
+}
 
 function Dashboard() {
   const { current, history } = useSimulation();
@@ -82,30 +91,12 @@ function Dashboard() {
         </Card>
       )}
 
-      {/* HERO METRICS */}
       <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <BigMetric
-          icon={<PiggyBank className="h-5 w-5" />}
-          label="Jatah Harian"
-          value={formatIDR(c.dailyBudget)}
-          hint={c.days > 0 ? `dibagi ke ${c.days} hari` : "Atur tanggal dulu"}
-          highlight
-        />
-        <BigMetric
-          icon={<Wallet className="h-5 w-5" />}
-          label="Sisa setelah Tagihan"
-          value={formatIDR(c.remaining)}
-          hint={`${formatIDR(c.totalBills)} dipotong dari pemasukan`}
-        />
-        <BigMetric
-          icon={<CalendarDays className="h-5 w-5" />}
-          label="Periode"
-          value={c.days > 0 ? `${c.days} hari` : "—"}
-          hint={current.incomeDate && current.endDate ? `${formatLongDate(current.incomeDate)} → ${formatLongDate(current.endDate)}` : "Belum ditentukan"}
-        />
+        <BigMetric icon={<PiggyBank className="h-5 w-5" />} label="Jatah Harian" value={formatIDR(c.dailyBudget)} hint={c.days > 0 ? `dibagi ke ${c.days} hari` : "Atur tanggal dulu"} highlight />
+        <BigMetric icon={<Wallet className="h-5 w-5" />} label="Sisa setelah Tagihan" value={formatIDR(c.remaining)} hint={`${formatIDR(c.totalBills)} dipotong dari pemasukan`} />
+        <BigMetric icon={<CalendarDays className="h-5 w-5" />} label="Periode" value={c.days > 0 ? `${c.days} hari` : "—"} hint={current.incomeDate && current.endDate ? `${formatLongDate(current.incomeDate)} → ${formatLongDate(current.endDate)}` : "Belum ditentukan"} />
       </section>
 
-      {/* PROGRESS + ACTIONS */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <Card className="p-5 lg:col-span-2 space-y-5">
           <div>
@@ -118,18 +109,14 @@ function Dashboard() {
               {billRatio >= 70 ? "Berat — sisa untuk harian tipis." : billRatio >= 40 ? "Sedang — masih wajar." : billRatio > 0 ? "Ringan — porsi sehat." : "Belum ada tagihan."}
             </p>
           </div>
-
           <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-sm font-semibold flex items-center gap-1.5"><CalendarDays className="h-4 w-4 text-primary-deep" /> Progres Periode</p>
               <span className="text-xs text-muted-foreground">{periodProgress}% berlalu</span>
             </div>
             <Progress value={periodProgress} className="h-2" />
-            <p className="text-xs text-muted-foreground mt-1.5">
-              Hari ke-{elapsed.used} dari {c.days || 0} · sisa {elapsed.left} hari
-            </p>
+            <p className="text-xs text-muted-foreground mt-1.5">Hari ke-{elapsed.used} dari {c.days || 0} · sisa {elapsed.left} hari</p>
           </div>
-
           <div className="grid grid-cols-3 gap-3 pt-2 border-t">
             <MiniStat label="Per Minggu" value={formatIDR(c.weekly)} />
             <MiniStat label="Per Bulan (30h)" value={formatIDR(c.monthly)} />
@@ -142,9 +129,7 @@ function Dashboard() {
             <Share2 className="h-4 w-4 text-primary-deep" />
             <p className="text-sm font-semibold">Laporkan ke Pasangan</p>
           </div>
-          <p className="text-xs text-muted-foreground mb-4">
-            Salin ringkasan atau kirim langsung lewat WhatsApp — biar transparan.
-          </p>
+          <p className="text-xs text-muted-foreground mb-4">Salin ringkasan atau kirim langsung lewat WhatsApp — biar transparan.</p>
           <div className="flex flex-col gap-2 mt-auto">
             <Button onClick={onShareWA} className="bg-success text-success-foreground hover:bg-success/90 shadow-soft">
               <Share2 className="h-4 w-4 mr-2" /> Kirim via WhatsApp
@@ -156,29 +141,17 @@ function Dashboard() {
         </Card>
       </section>
 
-      {/* WARNINGS */}
       {(c.isUnderwater || c.isTight) && (
         <section className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           {c.isUnderwater && (
-            <NoticeCard
-              tone="danger"
-              icon={<TrendingDown className="h-4 w-4" />}
-              title="Pemasukan tidak cukup"
-              detail={`Tagihan melebihi pemasukan sebesar ${formatIDR(c.totalBills - current.income)}. Pertimbangkan menunda atau memotong pos non-esensial.`}
-            />
+            <NoticeCard tone="danger" icon={<TrendingDown className="h-4 w-4" />} title="Pemasukan tidak cukup" detail={`Tagihan melebihi pemasukan sebesar ${formatIDR(c.totalBills - current.income)}. Pertimbangkan menunda atau memotong pos non-esensial.`} />
           )}
           {c.isTight && (
-            <NoticeCard
-              tone="warn"
-              icon={<AlertTriangle className="h-4 w-4" />}
-              title="Jatah harian tipis"
-              detail={`Hanya ${formatIDR(c.dailyBudget)}/hari. Hindari jajan impulsif & masak di rumah lebih sering.`}
-            />
+            <NoticeCard tone="warn" icon={<AlertTriangle className="h-4 w-4" />} title="Jatah harian tipis" detail={`Hanya ${formatIDR(c.dailyBudget)}/hari. Hindari jajan impulsif & masak di rumah lebih sering.`} />
           )}
         </section>
       )}
 
-      {/* INSIGHTS GRID */}
       <section>
         <div className="flex items-center justify-between mb-3">
           <h3 className="font-display text-xl font-semibold flex items-center gap-2">
@@ -187,9 +160,7 @@ function Dashboard() {
           <span className="text-xs text-muted-foreground">{insights.length} insight</span>
         </div>
         {insights.length === 0 ? (
-          <Card className="p-6 text-center text-sm text-muted-foreground">
-            Lengkapi simulasi di sidebar untuk melihat insight.
-          </Card>
+          <Card className="p-6 text-center text-sm text-muted-foreground">Lengkapi simulasi di sidebar untuk melihat insight.</Card>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
             {insights.map((i) => <InsightTile key={i.id} {...i} />)}
@@ -197,7 +168,6 @@ function Dashboard() {
         )}
       </section>
 
-      {/* BILLS LIST + HISTORY */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card className="p-5">
           <div className="flex items-center justify-between mb-3">
